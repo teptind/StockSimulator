@@ -1,30 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
 namespace ProductsCounting.Model
 {
-    public class Product : BaseModel, IComparable<Product>
+    public class Product : IComparable<Product>
     {
-        private int _number;
-
         public string Name { get; }
 
-        public int Number
-        {
-            get => _number;
-            set
-            {
-                _number = value;
-                OnPropertyChanged("Number");
-            }
-        }
+        public int Number { get; set; }
 
         public Product(int number, string name)
         {
-            _number = number;
+            Number = number;
             Name = name;
         }
 

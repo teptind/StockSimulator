@@ -19,7 +19,8 @@ namespace ProductsCounting.View
             DataContext = new
             {
                 viewModelInfo = _mainWindowViewModel,
-                productManagerInfo = _mainWindowViewModel.ProductManager
+                productManagerInfo = _mainWindowViewModel.ProductManager,
+                queriesInfo = _mainWindowViewModel.ProductManager.QueryService
             };
         }
 
@@ -42,9 +43,26 @@ namespace ProductsCounting.View
                     _mainWindowViewModel.DeleteProduct(TextBoxProductName.Text, TextBoxAmount.Text);
                 }
             }
-            catch (Exception ex) when (ex is ManagerException || ex is ValidationException)
+            catch (ValidationException ex)
             {
                 MessageBox.Show(this, ex.Message, "Operation denied");
+            }
+        }
+
+        private void ButtonUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ButtonUpdate.IsEnabled = false;
+                _mainWindowViewModel.GetStockInfo();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Operation denied");
+            }
+            finally
+            {
+                ButtonUpdate.IsEnabled = true;
             }
         }
     }

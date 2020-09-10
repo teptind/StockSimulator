@@ -1,11 +1,4 @@
-﻿using System;
-using ProductsCounting.Model;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Input;
+﻿using System.Text.RegularExpressions;
 using ProductsCounting.Infrastructure.Exceptions;
 
 namespace ProductsCounting.ViewModel
@@ -23,24 +16,16 @@ namespace ProductsCounting.ViewModel
         {
             var rg = new Regex(@"^[a-zA-Z0-9]+");
             if (name == null || !rg.IsMatch(name))
-            {
                 throw new ValidationException("The name must consist of latin letters and digits only");
-            }
         }
 
         private static int ParseNumber(string number)
         {
-            if (int.TryParse(number, out var parsedNumber))
-            {
-                if (parsedNumber <= 0)
-                {
-                    throw new ValidationException("The amount must be positive");
-                }
-            }
-            else
-            {
+            if (!int.TryParse(number, out var parsedNumber))
                 throw new ValidationException("The amount must be an integer");
-            }
+
+            if (parsedNumber <= 0)
+                throw new ValidationException("The amount must be positive");
 
             return parsedNumber;
         }
@@ -55,6 +40,10 @@ namespace ProductsCounting.ViewModel
         {
             ValidateName(name);
             ProductManager.DeleteProduct(name, ParseNumber(number));
+        }
+
+        public void GetStockInfo() {
+            ProductManager.UpdateLocalProducts();
         }
     }
 }

@@ -1,68 +1,52 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text;
-using System.Windows;
+using System.Threading;
+using System.Threading.Tasks;
+using ProductsCounting.Infrastructure.DataStructures;
 using ProductsCounting.Infrastructure.Exceptions;
 using ProductsCounting.Model;
+using ProductsCounting.Service.Db;
 
 namespace ProductsCounting.ViewModel
 {
-    public class ProductManager
+    public class ProductManager : IDisposable
     {
-        public ObservableSortedSet<Product> Products { get; }
-        public Dictionary<string, Product> ProductNames { get; }
+        public ObservableSortedSet<Product> Products { get; } = new ObservableSortedSet<Product>();
+        public QueryService QueryService { get; } = new QueryService();
 
         public ProductManager()
         {
-            Products = new ObservableSortedSet<Product>();
-            ProductNames = new Dictionary<string, Product>();
             foreach (var product in Product.GetMockProducts())
             {
-                Products.Add(product);
-                ProductNames.Add(product.Name, product);
+                QueryService.AddQuery(new Query(Query.QueryType.Add, product));
             }
+
+            Task.Run(() => QueryService.Run());
         }
 
         public void AddProduct(string name, int number)
         {
-            if (!ProductNames.ContainsKey(name))
-            {
-                var newProduct = new Product(number, name);
-                Products.Add(newProduct);
-                ProductNames[name] = newProduct;
-            }
-            else
-            {
-                if (int.MaxValue - number < ProductNames[name].Number)
-                {
-                    throw new ManagerException($"The total amount of {name} is too big");
-                }
-
-                ProductNames[name].Number += number;
-            }
+            QueryService.AddQuery(new Query(Query.QueryType.Add, new Product(number, name)));
         }
 
         public void DeleteProduct(string name, int number)
         {
-            if (!ProductNames.ContainsKey(name))
-            {
-                throw new ManagerException($"There is no product with name {name}");
-            }
+            QueryService.AddQuery(new Query(Query.QueryType.Delete, new Product(number, name)));
+        }
 
-            if (ProductNames[name].Number >= number)
+        public void UpdateLocalProducts()
+        {
+            Products.Clear();
+            
+            foreach (var product in StockController.GetAllDbProducts())
             {
-                ProductNames[name].Number -= number;
-                if (ProductNames[name].Number == 0)
-                {
-                    Products.Remove(ProductNames[name]);
-                    ProductNames.Remove(name);
-                }
+                Products.Add(product);
             }
-            else
-            {
-                throw new ManagerException($"There is not enough {name} in stock");
-            }
+        }
+
+        public void Dispose()
+        {
+            QueryService.IsActive = false;
+            Thread.Sleep(300);
         }
     }
 }
