@@ -33,12 +33,17 @@ namespace ProductsCounting.ViewModel {
                         {
                             StockController.DeleteProduct(curr.Source);
                         }
-                        Queries.Dequeue();
+
                         Trace.WriteLine($"{curr.TypeString} {curr.Source.Name} {curr.Source.Number} - ok");
                     }
                     catch (ManagerException e)
                     {
-                        Trace.WriteLine($"{curr.TypeString} {curr.Source.Name} {curr.Source.Number} - bad");
+                        Trace.WriteLine(
+                            $"{curr.TypeString} {curr.Source.Name} {curr.Source.Number} - bad - {e.Message}");
+                    }
+                    finally
+                    {
+                        Queries.Dequeue();
                     }
                 }
                 Thread.Sleep(200);

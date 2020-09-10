@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ProductsCounting.Infrastructure.DataStructures;
-using ProductsCounting.Infrastructure.Exceptions;
 using ProductsCounting.Model;
 using ProductsCounting.Service.Db;
 
@@ -36,8 +36,8 @@ namespace ProductsCounting.ViewModel
         public void UpdateLocalProducts()
         {
             Products.Clear();
-            
-            foreach (var product in StockController.GetAllDbProducts())
+
+            foreach (var product in StockController.GetAllDbProducts().Where(product => product.Number > 0))
             {
                 Products.Add(product);
             }

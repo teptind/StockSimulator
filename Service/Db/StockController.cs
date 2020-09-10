@@ -54,7 +54,7 @@ namespace ProductsCounting.Service.Db
                     db.Add(new ProductEntity(product.Name, product.Number));
                     db.SaveChanges();
                 }
-                catch (DbUpdateException e)
+                catch (Exception e) when (e is DbException || e is InvalidOperationException)
                 {
                     throw new ManagerException($"Cannot update DB: {e.Message}");
                 }
