@@ -59,8 +59,10 @@ namespace ProductsCounting.Service.Db
                         throw;
                 }
             }
+            throw new ManagerException($"Can't update {product.Name} in DB due to heavy traffic");
         }
 
+        // Копипаста, но если объединить 2 функции, будет нечитабельно
         public static void DeleteProduct(Product product)
         {
             for (int tryIndex = 0; tryIndex < TriesNum; ++tryIndex)
@@ -86,6 +88,7 @@ namespace ProductsCounting.Service.Db
                         throw;
                 }
             }
+            throw new ManagerException($"Can't update {product.Name} DB due to heavy traffic");
         }
 
         public static List<Product> GetAllDbProducts()
