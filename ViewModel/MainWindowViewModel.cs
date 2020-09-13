@@ -1,48 +1,73 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Threading;
+using ProductsCounting.Infrastructure.DataStructures;
 using ProductsCounting.Infrastructure.Exceptions;
+using ProductsCounting.Model;
+using ProductsCounting.Service;
 
 namespace ProductsCounting.ViewModel
 {
     public class MainWindowViewModel
     {
-        public readonly ProductManager ProductManager;
+        public readonly ProductManager ProductManager = new ProductManager();
+        public ObservableQueue<Query> QueryQueue { get; } = new ObservableQueue<Query>();
+        public ObservableSortedSet<Product> ProductSet { get; } = new ObservableSortedSet<Product>();
+        private Dictionary<string, Product> _productNames = new Dictionary<string, Product>();
 
         public MainWindowViewModel()
         {
-            ProductManager = new ProductManager();
-        }
+            var dispatcher = Dispatcher.CurrentDispatcher;
+            ProductManager.OnStockClear += () =>
+            {
+                ProductSet.Clear();
+                _productNames.Clear();
+            };
 
-        private static void ValidateName(string name)
-        {
-            var rg = new Regex(@"^[a-zA-Z0-9]+");
-            if (name == null || !rg.IsMatch(name))
-                throw new ValidationException("The name must consist of latin letters and digits only");
-        }
+            ProductManager.OnProductAdd += product =>
+            {
+                if (_productNames.ContainsKey(product.Name))
+                {
+                    _productNames[product.Name].Number += product.Number;
+                }
+                else
+                {
+                    ProductSet.Add(product);
+                    _productNames.Add(product.Name, product);
+                }
+            };
 
-        private static int ParseNumber(string number)
-        {
-            if (!int.TryParse(number, out var parsedNumber))
-                throw new ValidationException("The amount must be an integer");
+            ProductManager.OnQueryAdd += query =>
+            {
+                dispatcher.Invoke(() => QueryQueue.Enqueue(query));
+            };
 
-            if (parsedNumber <= 0)
-                throw new ValidationException("The amount must be positive");
+            ProductManager.OnQuerySent += () => { dispatcher.Invoke(() => QueryQueue.Dequeue()); };
 
-            return parsedNumber;
+            ProductManager.OnQueryDbFail += msg =>
+            {
+                MessageBox.Show(msg, "The Failed Query");
+            };
+
+            ProductManager.StartWork();
         }
 
         public void AddProduct(string name, string number)
         {
-            ValidateName(name);
-            ProductManager.AddProduct(name, ParseNumber(number));
+            Tools.ValidateProductName(name);
+            ProductManager.AddProduct(name, Tools.ParsePositiveNumber(number));
         }
 
         public void DeleteProduct(string name, string number)
         {
-            ValidateName(name);
-            ProductManager.DeleteProduct(name, ParseNumber(number));
+            Tools.ValidateProductName(name);
+            ProductManager.DeleteProduct(name, Tools.ParsePositiveNumber(number));
         }
 
-        public void GetStockInfo() {
+        public void GetStockInfo()
+        {
             ProductManager.UpdateLocalProducts();
         }
     }

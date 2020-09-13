@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,14 +12,26 @@ namespace ProductsCounting.ViewModel
 {
     public class ProductManager : IDisposable
     {
-        public ObservableSortedSet<Product> Products { get; } = new ObservableSortedSet<Product>();
+        public SortedSet<Product> Products { get; } = new SortedSet<Product>();
         public QueryService QueryService { get; } = new QueryService();
+
+        public Action<Product> OnProductAdd;
+        public Action OnStockClear;
+        public Action OnQuerySent;
+        public Action<Query> OnQueryAdd;
+        public Action<string> OnQueryDbFail;
 
         public ProductManager()
         {
+            QueryService.OnQuerySent += () => { OnQuerySent?.Invoke(); };
+            QueryService.OnOperationDeny += msg => { OnQueryDbFail?.Invoke(msg); };
+        }
+
+        public void StartWork()
+        {
             foreach (var product in Product.GetMockProducts())
             {
-                QueryService.AddQuery(new Query(Query.QueryType.Add, product));
+                AddProduct(product.Name, product.Number);
             }
 
             Task.Run(() => QueryService.Run());
@@ -25,21 +39,27 @@ namespace ProductsCounting.ViewModel
 
         public void AddProduct(string name, int number)
         {
-            QueryService.AddQuery(new Query(Query.QueryType.Add, new Product(number, name)));
+            var query = new Query(Query.QueryType.Add, new Product(number, name));
+            QueryService.AddQuery(query);
+            OnQueryAdd?.Invoke(query);
         }
 
         public void DeleteProduct(string name, int number)
         {
-            QueryService.AddQuery(new Query(Query.QueryType.Delete, new Product(number, name)));
+            var query = new Query(Query.QueryType.Delete, new Product(number, name));
+            QueryService.AddQuery(query);
+            OnQueryAdd?.Invoke(query);
         }
 
         public void UpdateLocalProducts()
         {
             Products.Clear();
+            OnStockClear?.Invoke();
 
             foreach (var product in StockController.GetAllDbProducts().Where(product => product.Number > 0))
             {
                 Products.Add(product);
+                OnProductAdd?.Invoke(product);
             }
         }
 

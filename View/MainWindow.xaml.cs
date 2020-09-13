@@ -16,12 +16,7 @@ namespace ProductsCounting.View
         {
             InitializeComponent();
             _mainWindowViewModel = new MainWindowViewModel();
-            DataContext = new
-            {
-                viewModelInfo = _mainWindowViewModel,
-                productManagerInfo = _mainWindowViewModel.ProductManager,
-                queriesInfo = _mainWindowViewModel.ProductManager.QueryService
-            };
+            DataContext = _mainWindowViewModel;
         }
 
         private void ButtonClear_Click(object sender, RoutedEventArgs e)
@@ -58,7 +53,7 @@ namespace ProductsCounting.View
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, ex.Message, "Operation denied");
+                MessageBox.Show(this, ex.Message, $"Updating denied due to {ex.Message}");
             }
             finally
             {

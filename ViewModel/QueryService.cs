@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Threading;
 using ProductsCounting.Infrastructure.DataStructures;
@@ -7,11 +8,13 @@ using ProductsCounting.Infrastructure.Exceptions;
 using ProductsCounting.Model;
 using ProductsCounting.Service.Db;
 
-namespace ProductsCounting.ViewModel {
+namespace ProductsCounting.ViewModel
+{
     public class QueryService
     {
         public Action<string> OnOperationDeny;
-        public ObservableConcurrentQueue<Query> Queries { get; } = new ObservableConcurrentQueue<Query>();
+        public Action OnQuerySent;
+        public ConcurrentQueue<Query> Queries { get; } = new ConcurrentQueue<Query>();
 
         // ConcurrentQueue<>
         public bool IsActive { get; set; } = true;
@@ -20,7 +23,6 @@ namespace ProductsCounting.ViewModel {
         {
             while (IsActive)
             {
-                // Where is connection exceptions???
                 if (!Queries.IsEmpty && Queries.TryPeek(out var curr))
                 {
                     try
@@ -34,18 +36,33 @@ namespace ProductsCounting.ViewModel {
                             StockController.DeleteProduct(curr.Source);
                         }
 
+                        if (Queries.TryDequeue(out _))
+                        {
+                            OnQuerySent?.Invoke();
+                        }
+
                         Trace.WriteLine($"{curr.TypeString} {curr.Source.Name} {curr.Source.Number} - ok");
                     }
-                    catch (ManagerException e)
+                    catch (Exception e)
                     {
-                        Trace.WriteLine(
-                            $"{curr.TypeString} {curr.Source.Name} {curr.Source.Number} - bad - {e.Message}");
-                    }
-                    finally
-                    {
-                        Queries.Dequeue();
+                        if (e is ManagerException)
+                        {
+                            Queries.TryDequeue(out _);
+                            OnQuerySent?.Invoke();
+                            Trace.WriteLine(
+                                $"{curr.TypeString} {curr.Source.Name} {curr.Source.Number} - bad - {e.Message}");
+                            OnOperationDeny?.Invoke(
+                                $"Bad query: {curr.TypeString} {curr.Source.Name} {curr.Source.Number}. Reason: {e.Message}");
+                        }
+                        else
+                        {
+                            Thread.Sleep(200);
+                            Trace.WriteLine(
+                                $"{curr.TypeString} {curr.Source.Name} {curr.Source.Number} - resent - {e.Message}");
+                        }
                     }
                 }
+
                 Thread.Sleep(200);
             }
         }

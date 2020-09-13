@@ -11,7 +11,7 @@ namespace ProductsCounting.Infrastructure.DataStructures {
             Update();
         }
 
-        public void Update()
+        private void Update()
         {
             CollectionChanged?.Invoke(
                 this, 

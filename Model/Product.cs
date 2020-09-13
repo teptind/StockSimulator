@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ProductsCounting.Model
 {
     public class Product : IComparable<Product>
     {
-        public string Name { get; }
+        [Key] public string Name { get; set; }
 
-        public int Number { get; set; }
+        [ConcurrencyCheck] public int Number { get; set; }
+
+        [Timestamp] public byte[] RowVersion { get; set; }
 
         public Product(int number, string name)
         {

@@ -18,7 +18,7 @@
         </ComboBox>
         <Label Content="Product name" HorizontalAlignment="Left" Margin="20,10,0,0" VerticalAlignment="Top" Height="27" Width="175" FontWeight="Bold" FontFamily="Arial Black" HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom"/>
         <Label Content="Amount" HorizontalAlignment="Left" Margin="20,75,0,0" VerticalAlignment="Top" Height="30" Width="175" FontFamily="Arial Black"  HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom"/>
-        <ListView x:Name="ListViewQueries" ItemsSource="{Binding Path=queriesInfo.Queries, Mode=OneWay}" Margin="348,18,330,20" MaxWidth="250">
+        <ListView x:Name="ListViewQueries" ItemsSource="{Binding Path=QueryQueue, Mode=OneWay}" Margin="348,18,330,20" MaxWidth="250">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="Focusable" Value="false"/>
@@ -37,7 +37,7 @@
                 </GridView>
             </ListView.View>
         </ListView>
-        <ListView x:Name="ListViewProducts" ItemsSource="{Binding productManagerInfo.Products, Mode=OneWay}" Margin="656,18,22,20" MaxWidth="250">
+        <ListView x:Name="ListViewProducts" ItemsSource="{Binding ProductSet, Mode=OneWay}" Margin="656,18,22,20" MaxWidth="250">
             <ListView.ItemContainerStyle>
                 <Style TargetType="{x:Type ListViewItem}">
                     <Setter Property="Focusable" Value="false"/>

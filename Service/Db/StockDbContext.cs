@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ProductsCounting.Service.Db.Entities;
+using ProductsCounting.Model;
 
 namespace ProductsCounting.Service.Db
 {
     public sealed class StockDbContext : DbContext
     {
-        public DbSet<ProductEntity> Stock { get; set; }
+        public DbSet<Product> Stock { get; set; }
 
         public StockDbContext()
         {

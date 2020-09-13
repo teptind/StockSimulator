@@ -1,81 +1,100 @@
 ﻿using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
+using ProductsCounting.Infrastructure;
 using ProductsCounting.Infrastructure.Exceptions;
 using ProductsCounting.Model;
-using ProductsCounting.Service.Db.Entities;
 
 namespace ProductsCounting.Service.Db
 {
     public class StockController
     {
-        [MethodImpl(MethodImplOptions.Synchronized)]
+        private const int TriesNum = 5;
+        private static void CheckProductNumber(Product product, int delta)
+        {
+            if (delta > 0)
+            {
+                if (product.Number > Constants.MaxAmount - delta)
+                {
+                    throw new ManagerException($"The overall number of {product.Name} is too big");
+                }
+            }
+            else
+            {
+                if (product.Number + delta < 0)
+                {
+                    throw new ManagerException($"The number of {product.Name} in stock is not enough");
+                }
+            }
+        }
+
         public static void AddProduct(Product product)
         {
-            using (var db = new StockDbContext())
+            for (int tryIndex = 0; tryIndex < TriesNum; ++tryIndex)
             {
                 try
                 {
-                    var entity = db.Stock.FirstOrDefault(item => item.NameId.Equals(product.Name));
-                    if (entity != null)
+                    using (var db = new StockDbContext())
                     {
-                        entity.Number += product.Number;
-                    }
-                    else
-                    {
-                        db.Add(new ProductEntity(product.Name, product.Number));
+                        var entity = db.Stock.FirstOrDefault(item => item.Name.Equals(product.Name));
+                        if (entity != null)
+                        {
+                            CheckProductNumber(entity, product.Number);
+                            entity.Number += product.Number;
+                        }
+                        else
+                        {
+                            db.Add(new Product(product.Number, product.Name));
+                        }
+
+                        db.SaveChanges();
                     }
 
-                    db.SaveChanges();
+                    return;
                 }
-                catch (DbException e)
+                catch (Exception e)
                 {
-                    throw new ManagerException($"Cannot update DB: {e.Message}");
+                    if (!(e is DbUpdateConcurrencyException))
+                        throw;
                 }
             }
         }
 
-        [MethodImpl(MethodImplOptions.Synchronized)]
         public static void DeleteProduct(Product product)
         {
-            using (var db = new StockDbContext())
+            for (int tryIndex = 0; tryIndex < TriesNum; ++tryIndex)
             {
                 try
                 {
-                    var entity = db.Stock.FirstOrDefault(item => item.NameId.Equals(product.Name));
-                    if (entity == null)
-                        throw new ManagerException($"There is no {product.Name} in DB");
+                    using (var db = new StockDbContext())
+                    {
+                        var entity = db.Stock.FirstOrDefault(item => item.Name.Equals(product.Name));
+                        if (entity == null)
+                            throw new ManagerException($"There is no {product.Name} in DB");
 
-                    entity.Number -= product.Number;
-                    db.Add(new ProductEntity(product.Name, product.Number));
-                    db.SaveChanges();
+                        CheckProductNumber(entity, -product.Number);
+                        entity.Number -= product.Number;
+                        db.SaveChanges();
+                    }
+
+                    return;
                 }
-                catch (Exception e) when (e is DbException || e is InvalidOperationException)
+                catch (Exception e)
                 {
-                    throw new ManagerException($"Cannot update DB: {e.Message}");
+                    if (!(e is DbUpdateConcurrencyException))
+                        throw;
                 }
             }
         }
 
-        [MethodImpl(MethodImplOptions.Synchronized)]
         public static List<Product> GetAllDbProducts()
         {
             using (var db = new StockDbContext())
             {
-                try
-                {
-                    return db.Stock.ToList().Select(
-                        productEntity => 
-                            new Product(productEntity.Number, productEntity.NameId)).ToList();
-                } 
-                catch (DbException e)
-                {
-                    throw new ManagerException($"Something went wrong while copying DB: {e.Message}");
-                }
+                return db.Stock.ToList().Select(
+                    productEntity =>
+                        new Product(productEntity.Number, productEntity.Name)).ToList();
             }
         }
     }

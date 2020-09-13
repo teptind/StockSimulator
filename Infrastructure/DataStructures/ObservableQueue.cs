@@ -6,7 +6,7 @@ using System.Text;
 using System.Windows.Threading;
 
 namespace ProductsCounting.Infrastructure.DataStructures {
-    public class ObservableConcurrentQueue<T> : ConcurrentQueue<T>, INotifyCollectionChanged {
+    public class ObservableQueue<T> : Queue<T>, INotifyCollectionChanged {
         public event NotifyCollectionChangedEventHandler CollectionChanged;
         public new void Enqueue(T element) {
             base.Enqueue(element);
@@ -14,13 +14,13 @@ namespace ProductsCounting.Infrastructure.DataStructures {
         }
 
         public void Update() {
-            // CollectionChanged?.Invoke(
-            //     this,
-            //     new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            CollectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
 
-        public void Dequeue() {
-            base.TryDequeue(out _);
+        public new void Dequeue() {
+            base.Dequeue();
             Update();
         }
     }
